@@ -1,0 +1,2164 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SWD PSP v1.4.0 - Symulator</title>
+    <style>
+        :root {
+            --win-bg: #ece9d8;
+            --win-border: #7f9db9;
+            --header-blue: #0a246a;
+            --table-bg: #000000;
+            --text-red: #ff2a2a;
+            --text-green: #00ff00;
+            --status-green: #2ecc71;
+            --status-red: #e74c3c;
+            --status-orange: #f39c12;
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: 'Tahoma', 'Segoe UI', Geneva, sans-serif;
+            font-size: 11px;
+            user-select: none;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            width: 100vw;
+            background-color: var(--win-bg);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .top-menu {
+            background-color: #f0f0f0;
+            border-bottom: 1px solid #a0a0a0;
+            display: flex;
+            padding: 2px 4px;
+            gap: 12px;
+        }
+
+        .menu-item {
+            padding: 1px 4px;
+            cursor: pointer;
+        }
+
+        .menu-item:hover {
+            background-color: #316ac5;
+            color: white;
+        }
+
+        .workspace {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 4px;
+            gap: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .tabs-bar {
+            display: flex;
+            gap: 2px;
+            border-bottom: 1px solid #999;
+        }
+
+        .tab-btn {
+            background: #e0e0e0;
+            border: 1px solid #999;
+            border-bottom: none;
+            padding: 2px 10px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .tab-btn.active {
+            background: var(--win-bg);
+            border-bottom: 1px solid var(--win-bg);
+            margin-bottom: -1px;
+        }
+
+        .units-grid {
+            flex: 1;
+            background: #ffffff;
+            border: 1px solid #7f9db9;
+            padding: 6px;
+            overflow-y: auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            grid-auto-rows: max-content;
+            gap: 6px;
+        }
+
+        .unit-box {
+            border: 1px solid #a0a0a0;
+            background: #fdfdfd;
+            box-shadow: 1px 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .unit-header {
+            background: #e3e3e3;
+            font-weight: bold;
+            padding: 3px 6px;
+            border-bottom: 1px solid #a0a0a0;
+            color: #000;
+        }
+
+        .vehicle-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 2px 6px;
+            border-bottom: 1px solid #eee;
+            background: #fff;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+
+        .status-dot.green { background-color: var(--status-green); }
+        .status-dot.red { background-color: var(--status-red); }
+        .status-dot.orange { background-color: var(--status-orange); }
+
+        .bottom-panel {
+            height: 240px;
+            display: flex;
+            gap: 4px;
+        }
+
+        .left-events {
+            flex: 2.3;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .btn-win {
+            background: linear-gradient(to bottom, #ffffff, #dcdcdc);
+            border: 1px solid #707070;
+            padding: 3px 10px;
+            cursor: pointer;
+            border-radius: 2px;
+        }
+
+        .btn-win:active { background: #bbb; }
+
+        .events-table-container {
+            flex: 1;
+            background-color: var(--table-bg);
+            border: 1px solid #7f9db9;
+            overflow-y: auto;
+        }
+
+        .events-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 11px;
+        }
+
+        .events-table th {
+            background-color: #1a1a1a;
+            color: #888;
+            border-bottom: 1px solid #333;
+            padding: 3px 6px;
+            text-align: left;
+            font-weight: normal;
+        }
+
+        .events-table td {
+            padding: 2px 6px;
+            border-bottom: 1px solid #111;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .events-table tr.active-ev td { color: var(--text-red); font-weight: bold; }
+        .events-table tr.selected-ev td { background-color: #003366 !important; color: #fff !important; }
+        .events-table tr.finished-ev td { color: var(--text-green); }
+
+        .right-details {
+            flex: 1;
+            background: #ffffff;
+            border: 1px solid #7f9db9;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .details-bar {
+            background: #e3e3e3;
+            padding: 3px 6px;
+            font-weight: bold;
+            border-bottom: 1px solid #a0a0a0;
+            display: flex;
+            gap: 6px;
+        }
+
+        .sis-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .sis-table th, .sis-table td {
+            border: 1px solid #ddd;
+            padding: 3px 5px;
+            text-align: left;
+        }
+
+        .sis-table th { background: #f0f0f0; }
+
+        .status-bar {
+            background: var(--win-bg);
+            border-top: 1px solid #a0a0a0;
+            padding: 2px 6px;
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .status-box {
+            border: 1px inset #fff;
+            background: #f0f0f0;
+            padding: 2px 8px;
+        }
+
+        .minimized-bar {
+            background: #d4d0c8;
+            border-top: 1px solid #808080;
+            padding: 2px 4px;
+            display: flex;
+            gap: 4px;
+            min-height: 26px;
+            align-items: center;
+        }
+
+        .minimized-item {
+            background: #ece9d8;
+            border: 1px solid #707070;
+            padding: 2px 8px;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+        }
+
+        .minimized-item:hover { background: #fff; }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.25);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .modal-window {
+            background: var(--win-bg);
+            border: 2px solid #0a246a;
+            box-shadow: 2px 2px 10px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            background: var(--header-blue);
+            color: white;
+            padding: 3px 6px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-close, .modal-min {
+            background: #d4d0c8;
+            color: #000;
+            border: 1px solid #fff;
+            width: 16px;
+            height: 16px;
+            line-height: 12px;
+            text-align: center;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .modal-body {
+            padding: 6px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .form-box {
+            border: 1px solid #a0a0a0;
+            padding: 6px;
+            margin-bottom: 6px;
+            background: #fff;
+        }
+
+        .form-title {
+            font-weight: bold;
+            color: #0a246a;
+            margin-bottom: 4px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 4px;
+            align-items: center;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        input[type="text"], select, textarea {
+            border: 1px solid #7f9db9;
+            padding: 2px 4px;
+            background: #fff;
+        }
+
+        .suggestions-list {
+            position: absolute;
+            border: 1px solid #7f9db9;
+            background: #fff;
+            z-index: 10000;
+            max-height: 120px;
+            overflow-y: auto;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .suggestion-item {
+            padding: 3px 6px;
+            cursor: pointer;
+        }
+
+        .suggestion-item:hover {
+            background-color: #0a246a;
+            color: white;
+        }
+
+        .flags-container {
+            height: 180px;
+            overflow-y: auto;
+            border: 1px solid #7f9db9;
+            padding: 4px;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .service-btn {
+            border: 1px solid #707070;
+            background: linear-gradient(to bottom, #ffffff, #e5e5e5);
+            padding: 6px 10px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            cursor: pointer;
+            flex: 1;
+            border-radius: 2px;
+        }
+
+        .service-btn.active {
+            background: linear-gradient(to bottom, #cce0ff, #99c2ff);
+            border: 1px solid #0a246a;
+            box-shadow: inset 1px 1px 2px rgba(0,0,0,0.2);
+        }
+
+        .cpr-window {
+            position: absolute;
+            top: 40px;
+            right: 20px;
+            width: 380px;
+            background: var(--win-bg);
+            border: 2px solid #b30000;
+            box-shadow: 3px 3px 12px rgba(0,0,0,0.4);
+            z-index: 8000;
+            display: none;
+            flex-direction: column;
+        }
+
+        .cpr-header {
+            background: #b30000;
+            color: white;
+            padding: 4px 8px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .radio-window {
+            position: absolute;
+            bottom: 30px;
+            right: 20px;
+            width: 460px;
+            height: 360px;
+            background: var(--win-bg);
+            border: 2px solid #0a246a;
+            box-shadow: 3px 3px 15px rgba(0,0,0,0.5);
+            z-index: 8500;
+            display: none;
+            flex-direction: column;
+        }
+
+        .chat-box {
+            flex: 1;
+            background: #000000;
+            color: #00ff00;
+            font-family: 'Consolas', monospace;
+            padding: 6px;
+            overflow-y: auto;
+            border: 1px solid #7f9db9;
+            margin-bottom: 4px;
+        }
+
+        .chat-msg {
+            margin-bottom: 6px;
+            line-height: 1.3;
+        }
+
+        .chat-kdr { color: #ffcc00; }
+        .chat-sk { color: #00ffff; }
+
+        .dispatch-unit-group {
+            border: 1px solid #b5c7de;
+            margin-bottom: 6px;
+            background: #fff;
+        }
+
+        .dispatch-unit-header {
+            background: #e4ecf7;
+            padding: 3px 6px;
+            font-weight: bold;
+            color: #0a246a;
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid #b5c7de;
+        }
+
+        .dispatch-unit-header.closest {
+            background: #d4edda;
+            color: #155724;
+            border-bottom-color: #c3e6cb;
+        }
+
+        .dispatch-vehicle-item {
+            padding: 3px 8px;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .dispatch-vehicle-item:hover {
+            background: #f5f9ff;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="top-menu">
+        <div class="menu-item">System</div>
+        <div class="menu-item">Widok</div>
+        <div class="menu-item">Rejestr Wyjazdów</div>
+        <div class="menu-item">Ewid</div>
+        <div class="menu-item" onclick="openSiSModal()">Siły i środki</div>
+        <div class="menu-item">Mapy</div>
+        <div class="menu-item">Podział Bojowy</div>
+        <div class="menu-item">Zestawienia i raporty</div>
+        <div class="menu-item">Urządzenia</div>
+        <div class="menu-item">Okna</div>
+        <div class="menu-item">Komunikator</div>
+        <div class="menu-item">Pomoc</div>
+    </div>
+
+    <div class="workspace">
+        <div class="tabs-bar">
+            <button class="tab-btn active" id="btn-tab-psp" onclick="switchTab('PSP')">PSP</button>
+            <button class="tab-btn" id="btn-tab-osp" onclick="switchTab('OSP')">OSP</button>
+        </div>
+
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 4px; overflow: hidden;">
+            <div id="grid-psp" class="units-grid"></div>
+            <div id="grid-osp" class="units-grid" style="display: none;"></div>
+
+            <div class="bottom-panel">
+                <div class="left-events">
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <button class="btn-win" onclick="openNewEventModal()">Utwórz kartę zdarzenia</button>
+                        <button class="btn-win" style="background: #ffe6e6; border-color: #b30000; font-weight: bold; color: #800000;" onclick="simulateIncomingCPR()">⚡ Symuluj nowe zgłoszenie z CPR (112)</button>
+                        <button class="btn-win" id="btn-open-radio" style="background: #e6f2ff; border-color: #0a246a; font-weight: bold; color: #0a246a; display: none;" onclick="openRadioForSelectedEvent()">📻 Otwórz radio zdarzenia</button>
+                    </div>
+                    <div class="events-table-container">
+                        <table class="events-table">
+                            <thead>
+                                <tr>
+                                    <th>ID zdarzenia</th>
+                                    <th>Data/Godzina</th>
+                                    <th>KP/KM</th>
+                                    <th>JRG</th>
+                                    <th>Miejsce</th>
+                                    <th>Zastępy</th>
+                                    <th>Rodzaj</th>
+                                    <th>Opis</th>
+                                    <th>Czas / Status</th>
+                                    <th>Nr meldunku</th>
+                                </tr>
+                            </thead>
+                            <tbody id="events-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="right-details">
+                    <div class="details-bar">
+                        <button style="font-size: 10px;">S</button>
+                        <button style="font-size: 10px; font-weight: bold;">L</button>
+                        <span id="details-title">Szczegóły zdarzenia</span>
+                    </div>
+                    <div style="padding: 4px; flex: 1; overflow-y: auto;">
+                        <table class="sis-table">
+                            <thead>
+                                <tr>
+                                    <th>Nazwa</th>
+                                    <th>Obsada</th>
+                                    <th>Jednostka</th>
+                                    <th>Status SiS</th>
+                                </tr>
+                            </thead>
+                            <tbody id="details-sis-body">
+                                <tr><td colspan="4" style="text-align: center; color: #888;">Brak wybranego zdarzenia</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="cpr-window" id="cpr-modal">
+            <div class="cpr-header">
+                <span>🚨 NOWE ZGŁOSZENIE SI WCPR (112)</span>
+                <div style="display: flex; gap: 2px;">
+                    <div class="modal-min" onclick="minimizeCPR()">_</div>
+                    <div class="modal-close" onclick="closeCPR()">×</div>
+                </div>
+            </div>
+            <div class="modal-body" style="background: #fff;">
+                <div class="form-title" style="color: #b30000;">Formatka zgłoszenia z Centrum Powiadamiania Ratunkowego</div>
+                <div style="margin-bottom: 6px; padding: 4px; background: #fff0f0; border: 1px solid #ffcccc;">
+                    <b>ID CPR:</b> <span id="cpr-id">WCPR-2026-9932</span><br>
+                    <b>Miejscowość:</b> <span id="cpr-city">Bolszewo</span><br>
+                    <b>Adres:</b> <span id="cpr-street">ul. Zamkowa 12</span><br>
+                    <b>Rodzaj:</b> <span id="cpr-type">P - Pożar autobusu</span><br>
+                    <b>Zgłaszający:</b> <span id="cpr-caller">Jan Kowalski (tel. 601-234-567)</span>
+                </div>
+                <div class="form-title">Treść powiadomienia:</div>
+                <div id="cpr-desc" style="padding: 6px; background: #f9f9f9; border: 1px solid #ccc; font-style: italic; margin-bottom: 8px;">
+                    Zgłoszenie pożaru komory silnika w autobusie komunikacji miejskiej. Pasażerowie ewakuowani.
+                </div>
+                <div style="display: flex; gap: 4px; justify-content: flex-end;">
+                    <button class="btn-win" onclick="minimizeCPR()">Minimalizuj</button>
+                    <button class="btn-win" style="font-weight: bold; background: #e2f0d9;" onclick="acceptCPRToEvent()">Otwórz w nowej karcie zdarzenia ➔</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="radio-window" id="radio-modal">
+            <div class="modal-header" style="background: #004080;">
+                <span id="radio-title">📻 Korespondencja Radiowa - KDR</span>
+                <div style="display: flex; gap: 2px;">
+                    <div class="modal-min" onclick="minimizeRadio()">_</div>
+                    <div class="modal-close" onclick="closeRadio()">×</div>
+                </div>
+            </div>
+            <div class="modal-body" style="display: flex; flex-direction: column;">
+                <div class="chat-box" id="radio-chat"></div>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                        <button class="btn-win" style="font-size: 10px;" onclick="quickReply('Wejherowo 998, przyjąłem.')">✅ Przyjąłem</button>
+                        <button class="btn-win" style="font-size: 10px;" onclick="quickReply('Wejherowo 998, czy potrzebujecie ZRM / Pogotowia?')">🚑 Wymagany ZRM?</button>
+                        <button class="btn-win" style="font-size: 10px;" onclick="quickReply('Wejherowo 998, czy Policja jest potrzebna na miejscu?')">🚔 Potrzebna Policja?</button>
+                        <button class="btn-win" style="font-size: 10px;" onclick="quickReply('Wejherowo 998, czy potrzebne dodatkowe siły i środki Straży?')">🚒 Dodatkowe SiS?</button>
+                    </div>
+                    <div style="display: flex; gap: 4px;">
+                        <input type="text" id="inp-radio-reply" placeholder="Napisz odpowiedź (Wejherowo 998)..." style="flex: 1;" onkeypress="if(event.key==='Enter') sendRadioReply()">
+                        <button class="btn-win" style="font-weight: bold;" onclick="sendRadioReply()">Wyślij</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="minimized-bar" id="minimized-bar">
+        <span style="color: #555; font-style: italic; margin-right: 6px;">Zminimalizowane okna:</span>
+    </div>
+
+    <div class="status-bar">
+        <span>Zalogowano jako: <b>aspirant damja</b></span>
+        <div class="status-box" style="margin-left: auto;">Transmisja</div>
+        <div class="status-box">Stan SIWCPR: Stan połączenia: OK</div>
+        <div class="status-box">Terminale statusów</div>
+        <div class="status-box" id="clock-box">2026-10-26 14:00:00</div>
+    </div>
+
+    <!-- MODALE -->
+    <div class="modal-overlay" id="modal-event">
+        <div class="modal-window" style="width: 920px; height: 720px;">
+            <div class="modal-header">
+                <span id="modal-event-title">Nowa Karta Zdarzenia</span>
+                <div class="modal-close" onclick="closeModal('modal-event')">×</div>
+            </div>
+
+            <div class="tabs-bar" style="padding: 4px 6px 0 6px; background: #d4d0c8;">
+                <button class="tab-btn active" id="tab-modal-dane" onclick="switchModalTab('dane')">Dane Zdarzenia</button>
+                <button class="tab-btn" id="tab-modal-czasy" onclick="switchModalTab('czasy')">Czasy operacyjne</button>
+            </div>
+
+            <div class="modal-body">
+                <div id="modal-tab-dane-content">
+                    <div class="form-box" style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <b>Siły i Środki:</b> <span id="lbl-selected-count">Wybrano pojazdów: 0</span>
+                        </div>
+                        <button class="btn-win" onclick="openDispatchModal()">Dyspozycja</button>
+                    </div>
+
+                    <div class="form-box">
+                        <div class="form-row">
+                            <div class="form-group" style="flex: 1;">
+                                <label>Czas:</label>
+                                <input type="text" id="inp-ev-time">
+                            </div>
+                            <div class="form-group" style="flex: 1;">
+                                <label>Przyjęto:</label>
+                                <select id="inp-ev-received">
+                                    <option>Telefon</option>
+                                    <option>CPR</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="flex: 1;">
+                                <label>Kanał:</label>
+                                <select><option>Straż Pożarna</option></select>
+                            </div>
+                            <div class="form-group" style="flex: 1;">
+                                <label>Jednostka:</label>
+                                <select id="inp-ev-jrg">
+                                    <option>JRG 1 Wejherowo</option>
+                                    <option>JRG 2 Rumia</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 6px;">
+                        <div style="flex: 1.3; display: flex; flex-direction: column; gap: 4px;">
+                            <div class="form-box">
+                                <div class="form-title">Lokalizacja</div>
+                                <div class="form-group" style="position: relative;">
+                                    <label>Miejscowość:</label>
+                                    <input type="text" id="inp-ev-city" placeholder="Wpisz np. Bolszewo, Rumia, Luzino..." oninput="handleCityInput(this)">
+                                    <div id="city-suggestions" class="suggestions-list" style="display:none; width: 100%; top: 38px;"></div>
+                                </div>
+                                <div class="form-group" style="margin-top: 4px;">
+                                    <label>Gmina/pow./woj.:</label>
+                                    <input type="text" id="inp-ev-region" readonly style="background: #eee;">
+                                </div>
+                                <div class="form-group" style="margin-top: 4px;">
+                                    <label>Adres:</label>
+                                    <input type="text" id="inp-ev-street" placeholder="Ulica / Nr budynku">
+                                </div>
+                                <div class="form-row" style="margin-top: 4px;">
+                                    <div class="form-group" style="flex:1;"><label>Obiekt:</label><input type="text"></div>
+                                    <div class="form-group" style="width:50px;"><label>Piętro:</label><input type="text" value="0"></div>
+                                </div>
+                            </div>
+
+                            <div class="form-box">
+                                <div class="form-title">Informacje dodatkowe - opis zdarzenia</div>
+                                <textarea id="inp-ev-desc" style="width: 100%; height: 50px;" placeholder="Wpisz np. pożar autobusu, pożar hali..."></textarea>
+                            </div>
+
+                            <div class="form-box">
+                                <div class="form-title">Zdarzenie</div>
+                                <div class="form-row">
+                                    <label><input type="radio" name="ev-type" value="P" checked onclick="updateSubtypes('P')"> P</label>
+                                    <label><input type="radio" name="ev-type" value="MZ" onclick="updateSubtypes('MZ')"> MZ</label>
+                                    <label><input type="radio" name="ev-type" value="AF" onclick="updateSubtypes('AF')"> AF</label>
+                                    <label><input type="radio" name="ev-type" value="CW" onclick="updateSubtypes('CW')"> CW</label>
+                                    <label><input type="radio" name="ev-type" value="WG" onclick="updateSubtypes('WG')"> WG</label>
+                                    <label><input type="radio" name="ev-type" value="BL" onclick="updateSubtypes('BL')"> BL</label>
+                                    <label><input type="radio" name="ev-type" value="ZPR" onclick="updateSubtypes('ZPR')"> ZPR</label>
+                                    <label><input type="radio" name="ev-type" value="PZR" onclick="updateSubtypes('PZR')"> PZR</label>
+                                </div>
+                                <div class="form-group" style="margin-top: 4px;" id="subtype-group">
+                                    <label>Podrodzaj:</label>
+                                    <select id="inp-ev-subtype"></select>
+                                </div>
+                                <div class="form-row" style="margin-top: 4px;">
+                                    <div class="form-group" style="flex:1;">
+                                        <label>Jedn. prow.:</label>
+                                        <select id="inp-ev-lead">
+                                            <option>JRG 1 Wejherowo</option>
+                                            <option>JRG 2 Rumia</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group" style="flex:1;">
+                                        <label>Teren działania:</label>
+                                        <select id="inp-ev-area">
+                                            <option>JRG 1 Wejherowo</option>
+                                            <option>JRG 2 Rumia</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
+                            <div class="form-box">
+                                <div class="form-title">Dane zgłaszającego</div>
+                                <div class="form-group"><label>Imię:</label><input type="text" id="inp-caller-name"></div>
+                                <div class="form-group"><label>Nazwisko:</label><input type="text" id="inp-caller-surname"></div>
+                                <div class="form-group"><label>Nr telefonu:</label><input type="text" id="inp-caller-phone"></div>
+                            </div>
+
+                            <div class="form-box">
+                                <div class="form-title">Powiadomione służby</div>
+                                <div style="display: flex; gap: 6px; margin-bottom: 6px;">
+                                    <div class="service-btn" id="btn-service-prm" onclick="toggleService('prm')">⚕ PRM</div>
+                                    <div class="service-btn" id="btn-service-police" onclick="toggleService('police')">🚔 Policja</div>
+                                </div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+                                    <label><input type="checkbox"> Pogotowie Gazowe</label>
+                                    <label><input type="checkbox"> Pogotowie Energetyczne</label>
+                                    <label><input type="checkbox"> Straż Miejska</label>
+                                    <label><input type="checkbox"> Wojsko</label>
+                                </div>
+                            </div>
+
+                            <div class="form-box">
+                                <div class="form-title">Flagi zdarzenia</div>
+                                <div class="flags-container">
+                                    <label><input type="checkbox"> Do wiadomości KG</label>
+                                    <label><input type="checkbox"> Do wiadomości KW</label>
+                                    <label><input type="checkbox"> Doskonalenie kierowców</label>
+                                    <label><input type="checkbox"> Działania międzynarodowe</label>
+                                    <label><input type="checkbox"> Ewakuacja osób</label>
+                                    <label><input type="checkbox"> GIOŚ / WIOŚ</label>
+                                    <label><input type="checkbox"> HNS</label>
+                                    <label><input type="checkbox"> IZRM</label>
+                                    <label><input type="checkbox"> Koronawirus</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="modal-tab-czasy-content" style="display: none;">
+                    <div class="form-box">
+                        <div class="form-title">Czasy operacyjne zdarzenia</div>
+                        <div class="form-group"><label>Czas rozpoczęcia:</label><input type="text" id="time-start"></div>
+                        <div class="form-group" style="margin-top: 4px;"><label>Czas Lokalizacji:</label><input type="text" id="time-lok"></div>
+                        <div class="form-group" style="margin-top: 4px;"><label>Czas zakończenia:</label><input type="text" id="time-end"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="padding: 6px; background: #e1e1e1; border-top: 1px solid #aaa; display: flex; justify-content: flex-end; gap: 8px;">
+                <button class="btn-win" style="background: #ffcccc; color: #800000;" onclick="finishCurrentEvent()">Zakończ zdarzenie / Przywróć SiS</button>
+                <button class="btn-win" onclick="closeModal('modal-event')">❌ Anuluj</button>
+                <button class="btn-win" style="font-weight: bold; background: #e2f0d9;" onclick="saveEvent()">✅ Zapisz</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-dispatch">
+        <div class="modal-window" style="width: 550px; height: 500px;">
+            <div class="modal-header">
+                <span id="dispatch-modal-title">Wybór Sił i Środków (wg odległości)</span>
+                <div class="modal-close" onclick="closeModal('modal-dispatch')">×</div>
+            </div>
+            <div id="dispatch-info-bar" style="background: #f0f4f9; padding: 4px 8px; border-bottom: 1px solid #7f9db9; font-weight: bold; color: #0a246a;">
+                Kolejność jednostek od najbliższej do miejsca zdarzenia
+            </div>
+            <div class="modal-body" id="dispatch-list" style="background: #ece9d8; padding: 6px;"></div>
+            <div style="padding: 6px; background: #e1e1e1; border-top: 1px solid #aaa; display: flex; justify-content: flex-end; gap: 6px;">
+                <button class="btn-win" onclick="closeModal('modal-dispatch')">Anuluj</button>
+                <button class="btn-win" style="font-weight: bold; background: #e2f0d9;" onclick="confirmDispatch()">Zatwierdź wybór</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-sis">
+        <div class="modal-window" style="width: 600px; height: 350px;">
+            <div class="modal-header">
+                <span>Zarządzanie siłami i środkami</span>
+                <div class="modal-close" onclick="closeModal('modal-sis')">×</div>
+            </div>
+            <div class="modal-body">
+                <div style="display: flex; gap: 8px;">
+                    <div class="form-box" style="flex:1;">
+                        <div class="form-title">Państwowa Straż Pożarna</div>
+                        <button class="btn-win" onclick="alert('Dodawanie jednostki PSP')">Dodaj jednostkę</button>
+                        <button class="btn-win" onclick="alert('Dodawanie pojazdu PSP')">Dodaj pojazd</button>
+                    </div>
+                    <div class="form-box" style="flex:1;">
+                        <div class="form-title">Ochotnicza Straż Pożarna</div>
+                        <button class="btn-win" onclick="alert('Dodawanie jednostki OSP')">Dodaj jednostkę</button>
+                        <button class="btn-win" onclick="alert('Dodawanie pojazdu OSP')">Dodaj pojazd</button>
+                    </div>
+                </div>
+            </div>
+            <div style="padding: 6px; background: #e1e1e1; display: flex; justify-content: flex-end;">
+                <button class="btn-win" onclick="closeModal('modal-sis')">Zamknij</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- MODUŁ AUDIO (SYNTEZATOR DŹWIĘKÓW) ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(type) {
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            if (type === 'cpr') {
+                // Sygnał alarmowy zgłoszenia CPR
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+                osc.frequency.setValueAtTime(1100, audioCtx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.4);
+            } else if (type === 'radio') {
+                // Kliknięcie radiowe
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(450, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.08);
+            } else if (type === 'osp_alarm') {
+                // Dźwięk alarmowania OSP
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+                osc.frequency.linearRampToValueAtTime(900, audioCtx.currentTime + 0.2);
+                gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.3);
+            }
+        }
+
+        // Funkcja odtwarzająca dźwięk OSP tyle razy, ile unikalnych jednostek OSP zadysponowano[cite: 5]
+        function playOspAlarmRepeated(ospCount) {
+            if (ospCount <= 0) return;
+            for (let i = 0; i < ospCount; i++) {
+                setTimeout(() => {
+                    playSound('osp_alarm');
+                }, i * 400); // Odstęp 400ms między powtórzeniami
+            }
+        }
+
+        const locationsDatabase = {
+            "Bolszewo": "gm. Wejherowo, pow. wejherowski, woj. pomorskie",
+            "Wejherowo": "m. Wejherowo, pow. wejherowski, woj. pomorskie",
+            "Rumia": "m. Rumia, pow. wejherowski, woj. pomorskie",
+            "Reda": "m. Reda, pow. wejherowski, woj. pomorskie",
+            "Gościcino": "gm. Wejherowo, pow. wejherowski, woj. pomorskie",
+            "Gniewowo": "gm. Wejherowo, pow. wejherowski, woj. pomorskie",
+            "Gowino": "gm. Wejherowo, pow. wejherowski, woj. pomorskie",
+            "Góra": "gm. Wejherowo, pow. wejherowski, woj. pomorskie",
+            "Kniewo": "gm. Wejherowo, pow. wejherowski, woj. pomorskie",
+            "Nowy Dwór Wejherowski": "gm. Wejherowo, pow. wejherowski, woj. pomorskie",
+            "Orle": "gm. Wejherowo, pow. wejherowski, woj. pomorskie",
+            "Zbychowo": "gm. Wejherowo, pow. wejherowski, woj. pomorskie",
+            "Luzino": "gm. Luzino, pow. wejherowski, woj. pomorskie",
+            "Zelewo": "gm. Luzino, pow. wejherowski, woj. pomorskie",
+            "Milwino": "gm. Luzino, pow. wejherowski, woj. pomorskie",
+            "Szemud": "gm. Szemud, pow. wejherowski, woj. pomorskie",
+            "Kielno": "gm. Szemud, pow. wejherowski, woj. pomorskie",
+            "Bojano": "gm. Szemud, pow. wejherowski, woj. pomorskie",
+            "Częstkowo": "gm. Szemud, pow. wejherowski, woj. pomorskie",
+            "Łebno": "gm. Szemud, pow. wejherowski, woj. pomorskie",
+            "Przetoczyno": "gm. Szemud, pow. wejherowski, woj. pomorskie",
+            "Gniewino": "gm. Gniewino, pow. wejherowski, woj. pomorskie",
+            "Nadole": "gm. Gniewino, pow. wejherowski, woj. pomorskie",
+            "Kostkowo": "gm. Gniewino, pow. wejherowski, woj. pomorskie",
+            "Rybno": "gm. Gniewino, pow. wejherowski, woj. pomorskie",
+            "Opalino": "gm. Gniewino, pow. wejherowski, woj. pomorskie",
+            "Choczewo": "gm. Choczewo, pow. wejherowski, woj. pomorskie",
+            "Słajszewo": "gm. Choczewo, pow. wejherowski, woj. pomorskie",
+            "Sasino": "gm. Choczewo, pow. wejherowski, woj. pomorskie",
+            "Kopalino": "gm. Choczewo, pow. wejherowski, woj. pomorskie",
+            "Linia": "gm. Linia, pow. wejherowski, woj. pomorskie",
+            "Strzepcz": "gm. Linia, pow. wejherowski, woj. pomorskie",
+            "Lewino": "gm. Linia, pow. wejherowski, woj. pomorskie",
+            "Łęczyce": "gm. Łęczyce, pow. wejherowski, woj. pomorskie",
+            "Bożepole Wielkie": "gm. Łęczyce, pow. wejherowski, woj. pomorskie",
+            "Rozłazino": "gm. Łęczyce, pow. wejherowski, woj. pomorskie",
+            "Kaczkowo": "gm. Łęczyce, pow. wejherowski, woj. pomorskie"
+        };
+
+        const townsList = Object.keys(locationsDatabase);
+
+        const coordsMap = {
+            "Wejherowo": { x: 0, y: 0 },
+            "Bolszewo": { x: -4, y: 1 },
+            "Gościcino": { x: -6, y: 0 },
+            "Gowino": { x: -5, y: -3 },
+            "Góra": { x: -5, y: 4 },
+            "Orle": { x: -6, y: 3 },
+            "Kniewo": { x: -7, y: 5 },
+            "Rybno": { x: -9, y: 8 },
+            "Gniewowo": { x: 4, y: -4 },
+            "Zbychowo": { x: 3, y: -6 },
+            "Nowy Dwór Wejherowski": { x: 0, y: -6 },
+            "Reda": { x: 7, y: -1 },
+            "Rumia": { x: 12, y: -3 },
+            "Luzino": { x: -11, y: -1 },
+            "Zelewo": { x: -9, y: 3 },
+            "Milwino": { x: -11, y: -5 },
+            "Szemud": { x: -5, y: -13 },
+            "Przetoczyno": { x: -4, y: -9 },
+            "Częstkowo": { x: -8, y: -9 },
+            "Łebno": { x: -11, y: -12 },
+            "Kielno": { x: 1, y: -15 },
+            "Bojano": { x: 4, y: -14 },
+            "Gniewino": { x: -14, y: 13 },
+            "Nadole": { x: -14, y: 16 },
+            "Kostkowo": { x: -12, y: 10 },
+            "Opalino": { x: -12, y: 15 },
+            "Choczewo": { x: -22, y: 16 },
+            "Słajszewo": { x: -27, y: 19 },
+            "Sasino": { x: -29, y: 20 },
+            "Kopalino": { x: -24, y: 20 },
+            "Linia": { x: -24, y: -11 },
+            "Strzepcz": { x: -16, y: -11 },
+            "Lewino": { x: -18, y: -9 },
+            "Łęczyce": { x: -19, y: 1 },
+            "Bożepole Wielkie": { x: -15, y: -1 },
+            "Rozłazino": { x: -21, y: -3 },
+            "Kaczkowo": { x: -18, y: 4 }
+        };
+
+        const unitBaseTown = {
+            "JRG 1 Wejherowo": "Wejherowo",
+            "KP PSP Wejherowo": "Wejherowo",
+            "JRG 2 Rumia": "Rumia",
+            ".OSP KSRG Bolszewo": "Bolszewo",
+            ".OSP KSRG Gościcino": "Gościcino",
+            ".OSP KSRG Wejherowo": "Wejherowo",
+            ".OSP KSRG Reda": "Reda",
+            ".OSP KSRG Luzino": "Luzino",
+            ".OSP KSRG Zelewo": "Zelewo",
+            ".OSP KSRG Szemud": "Szemud",
+            ".OSP KSRG Kielno": "Kielno",
+            ".OSP KSRG Bojano": "Bojano",
+            ".OSP KSRG Gniewino": "Gniewino",
+            ".OSP KSRG Nadole": "Nadole",
+            ".OSP KSRG Kostkowo": "Kostkowo",
+            ".OSP KSRG Choczewo": "Choczewo",
+            ".OSP KSRG Słajszewo": "Słajszewo",
+            ".OSP KSRG Sasino": "Sasino",
+            ".OSP KSRG Linia": "Linia",
+            ".OSP KSRG Strzepcz": "Strzepcz",
+            ".OSP KSRG Łęczyce": "Łęczyce",
+            ".OSP KSRG Rozłazino": "Rozłazino",
+            "OSP Kopalino": "Kopalino",
+            "OSP Rybno": "Rybno",
+            "OSP Lewino": "Lewino",
+            "OSP Milwino": "Milwino",
+            "OSP Kaczkowo": "Kaczkowo",
+            "OSP Częstkowo": "Częstkowo",
+            "OSP Łebno": "Łebno",
+            "OSP Przetoczyno": "Przetoczyno",
+            "OSP Gowino": "Gowino",
+            "OSP Kniewo": "Kniewo",
+            "OSP Orle": "Orle",
+            "OSP Zbychowo": "Zbychowo",
+            "OSP Gniewowo": "Gniewowo",
+            "OSP Góra": "Góra",
+            "OSP Opalino": "Opalino",
+            "OSP Nowy Dwór Wejherowski": "Nowy Dwór Wejherowski"
+        };
+
+        function getUnitProximity(unitName, city) {
+            const baseTown = unitBaseTown[unitName] || "Wejherowo";
+            const targetTown = Object.keys(coordsMap).find(
+                c => c.toLowerCase() === (city || "").trim().toLowerCase()
+            ) || "Wejherowo";
+
+            if (baseTown.toLowerCase() === targetTown.toLowerCase()) {
+                const isJRG = unitName.includes("JRG");
+                return { sec: isJRG ? 15 : 18, km: isJRG ? "1.2 km" : "1.5 km" };
+            }
+
+            const c1 = coordsMap[baseTown] || { x: 0, y: 0 };
+            const c2 = coordsMap[targetTown] || { x: 0, y: 0 };
+            const dist = Math.sqrt(Math.pow(c1.x - c2.x, 2) + Math.pow(c1.y - c2.y, 2)) * 1.25;
+            const kmRounded = Math.max(1.5, Math.round(dist * 10) / 10);
+            const secCalc = Math.max(20, Math.round(kmRounded * 4.5));
+
+            return { sec: secCalc, km: `${kmRounded.toFixed(1)} km` };
+        }
+
+        function calculateTravelTimeSeconds(unitName, city) {
+            return getUnitProximity(unitName, city).sec;
+        }
+
+        function autoSelectJRGByCity(city) {
+            const c = (city || "").trim().toLowerCase();
+            const jrgVal = (c === "rumia" || c === "reda" || c === "bojano" || c === "kielno") ? "JRG 2 Rumia" : "JRG 1 Wejherowo";
+            document.getElementById('inp-ev-jrg').value = jrgVal;
+            document.getElementById('inp-ev-lead').value = jrgVal;
+            document.getElementById('inp-ev-area').value = jrgVal;
+        }
+
+        const streetNames = ["Gdańska", "Sobieskiego", "Zamkowa", "Leśna", "Szkolna", "Przemysłowa", "Długa", "Kwiatowa", "Słoneczna", "Łąkowa", "Krótka", "Mickiewicza", "Polna", "Ogrodowa"];
+        
+        function getRandomStreet(category) {
+            const town = townsList[Math.floor(Math.random() * townsList.length)];
+            const stName = streetNames[Math.floor(Math.random() * streetNames.length)];
+            const num = Math.floor(Math.random() * 80) + 1;
+
+            if (category === "bus_stop") {
+                return { city: town, street: `Przystanek Autobusowy ul. ${stName}` };
+            } else if (category === "industry") {
+                const industries = [
+                    { city: "Bolszewo", street: `Balex-Metal, ul. Wejherowska ${num}` },
+                    { city: "Wejherowo", street: `Markisol Polska, ul. Fabryczna ${num}` },
+                    { city: "Rumia", street: `Hala Magazynowa, ul. Przemysłowa ${num}` },
+                    { city: "Wejherowo", street: `Tartak / Skład Drzewny, ul. Przemysłowa ${num}` }
+                ];
+                return industries[Math.floor(Math.random() * industries.length)];
+            } else if (category === "residential") {
+                const types = [`ul. ${stName} ${num}`, `Kamienica, ul. ${stName} ${num}`, `Blok mieszkalny, ul. ${stName} ${num}/` + (Math.floor(Math.random()*15)+1)];
+                return { city: town, street: types[Math.floor(Math.random() * types.length)] };
+            } else {
+                return { city: town, street: `ul. ${stName} ${num}` };
+            }
+        }
+
+        const eventTemplatesPool = [
+            {
+                category: "bus_stop",
+                type: "P",
+                subtype: "P - Śmietniska, wysypiska",
+                desc: "Zgłoszenie pożaru śmietnika w wiacie przystankowej. Zagrożenie dla oczekujących pasażerów."
+            },
+            {
+                category: "bus_stop",
+                type: "MZ",
+                subtype: "MZ - Zwierzęta",
+                desc: "Gniazdo os / szerszeni pod dachem wiaty przystankowej. Zagrożenie dla podróżnych."
+            },
+            {
+                category: "industry",
+                type: "P",
+                subtype: "P - Obiekty produkcyjne, instalacje technologiczne",
+                desc: "Alarm pożarowy z systemu SSP w zakładzie przemysłowym. Widoczny dym z dachu hali."
+            },
+            {
+                category: "industry",
+                type: "P",
+                subtype: "P - Obiekty magazynowe, place składowe",
+                desc: "Pożar składowiska palet i materiałów izolacyjnych na placu zewnętrznym zakładu."
+            },
+            {
+                category: "road",
+                type: "MZ",
+                subtype: "MZ - Wypadek",
+                desc: "Zderzenie czołowe dwóch samochodów osobowych. Zablokowany jeden pas ruchu, wyciek płynów."
+            },
+            {
+                category: "road",
+                type: "MZ",
+                subtype: "MZ - Chemiczne",
+                desc: "Duża plama oleju napędowego na jezdni na odcinku kilkudziesięciu metrów."
+            },
+            {
+                category: "residential",
+                type: "P",
+                subtype: "P - Obiekty mieszkalne",
+                desc: "Zgłoszenie ognia w mieszkaniu / na balkonie w budynku wielorodzinnym. Widoczny płomień."
+            },
+            {
+                category: "residential",
+                type: "P",
+                subtype: "P - Obiekty mieszkalne",
+                desc: "Zgłoszenie zadymienia na klatce schodowej w budynku mieszkalnym. Domownicy ewakuowani na zewnątrz."
+            },
+            {
+                category: "residential",
+                type: "MZ",
+                subtype: "MZ - Pomoc w otwarciu mieszkania, podejrzenie zgonu",
+                desc: "Brak kontaktu ze starszą osobą w mieszkaniu. Wezwanie od sąsiadów i ZRM."
+            }
+        ];
+
+        const callersList = [
+            "Jan Kowalski (tel. 601-234-567)",
+            "Krystyna Lewandowska (tel. 502-888-112)",
+            "Piotr Wiśniewski (tel. 791-332-100)",
+            "Ochrona Obiektu (tel. 58-671-00-22)",
+            "Dyspozytor / Świadek (tel. 605-112-998)"
+        ];
+
+        const subtypesData = {
+            "P": [
+                "P - Inne pożary", "P - Instytucje, obiekty użyteczności publicznej", "P - Obiekty gospodarcze i inne rolnicze",
+                "P - Obiekty magazynowe, place składowe", "P - Obiekty mieszkalne", "P - Obiekty produkcyjne, instalacje technologiczne",
+                "P - Śmietniska, wysypiska", "P - Środki transportu drogowego (np. autobus)", "P - Środki transportu kolejowego",
+                "P - Środki transportu lotniczego", "P - Środki transportu wodnego", "P - Trawy, torfowiska, lasy, pola, stogi"
+            ],
+            "MZ": [
+                "Inne MZ", "MZ - Atmosferyczne", "MZ - Budowlane", "MZ - Chemiczne", "MZ - Drogowe", "MZ - Kolejowe",
+                "MZ - Kolizja", "MZ - Lotnicze", "MZ - Wodne", "MZ - Palenie ognisk w miejscach niedozwolonych",
+                "MZ - Podejrzenie podłożenia ładunku", "MZ - Pomoc innym służbom", "MZ - Pomoc Policji", "MZ - Pomoc PRM",
+                "MZ - Pomoc w otwarciu mieszkania, podejrzenie zgonu", "MZ - Poszukiwanie osób zaginionych", "MZ - Próba samobójcza",
+                "MZ - Sanitarno-epidemiologiczne", "MZ - Topienie się", "MZ - Wypadek", "MZ - Zabezpieczenie ładunku", "MZ - Zwierzęta"
+            ],
+            "AF": ["AF - Fałszywy z instalacji", "AF - Złośliwy", "AF - W dobrej wierze"],
+            "CW": ["CW - Zagrożenie chemiczne", "CW - Zagrożenie ekologiczne"],
+            "WG": ["WG - Wybuch gazu", "WG - Inne zagrożenie wybuchem"],
+            "BL": ["BL - Budynek zagrożony zawaleniem"],
+            "ZPR": ["ZPR - Zagrożenie promieniotwórcze"],
+            "PZR": []
+        };
+
+        let unitsPSP = [
+            {
+                name: "JRG 1 Wejherowo",
+                vehicles: [
+                    { id: "551[G]21", name: "GBA 2,5/16 Volvo FL280/Bocar", status: "green", obsada: 6 },
+                    { id: "551[G]25", name: "GCBA 5,4/25 Man TGM 18.320/Bocar", status: "green", obsada: 4 },
+                    { id: "551[G]26", name: "GCBA 9,5/60 Man TGS 26.440/Stolarczyk", status: "green", obsada: 3 },
+                    { id: "551[G]53", name: "SH-40 Volvo FM12/Bumar", status: "green", obsada: 2 },
+                    { id: "551[G]90", name: "SLRr Ford Ranger", status: "green", obsada: 2 },
+                    { id: "551[G]P05", name: "Przyczepa EKO", status: "green", obsada: 0 },
+                    { id: "551[G]Ł01", name: "Przyczepa z pontonem", status: "green", obsada: 0 },
+                    { id: "551[G]Ł02", name: "Przyczepa z łodzią hybrydową", status: "green", obsada: 0 }
+                ]
+            },
+            {
+                name: "JRG 2 Rumia",
+                vehicles: [
+                    { id: "552[G]21", name: "GBAPr 2,5/28/250 MB Atego/Bocar", status: "green", obsada: 4 },
+                    { id: "552[G]25", name: "GCBA 5/32 Scania P410/WISS", status: "green", obsada: 4 },
+                    { id: "552[G]51", name: "SD-32 Mercedes Atego/Rosenbauer", status: "green", obsada: 2 },
+                    { id: "552[G]72", name: "SRWys Mercedes Atego/Bocar", status: "green", obsada: 3 },
+                    { id: "552[G]90", name: "SLRr Isuzu D-Max", status: "green", obsada: 2 },
+                    { id: "552[G]Q01", name: "Quad CF Moto", status: "green", obsada: 1 }
+                ]
+            },
+            {
+                name: "KP PSP Wejherowo",
+                vehicles: [
+                    { id: "550[G]81", name: "SLKw VW T6", status: "green", obsada: 2 },
+                    { id: "550[G]90", name: "SLOp Skoda Octavia", status: "green", obsada: 1 },
+                    { id: "550[G]92", name: "SLOp Skoda Yeti", status: "green", obsada: 1 }
+                ]
+            }
+        ];
+
+        let unitsOSP = [
+            {
+                name: ".OSP KSRG Bolszewo",
+                vehicles: [
+                    { id: "559[G]56", name: "GBA 2,5/16 Star 12.185/Stolarczyk", status: "green", obsada: 6 },
+                    { id: "559[G]57", name: "SLRr Toyota Hilux", status: "green", obsada: 3 },
+                    { id: "559[G]58", name: "GCBA 5/32 MB Atego/Mototruck", status: "green", obsada: 4 },
+                    { id: "559[G]59", name: "SLKw Ford Transit/Stolarczyk", status: "green", obsada: 2 },
+                    { id: "559[G]Q01", name: "Quad CF MOTO 500-2A", status: "green", obsada: 1 }
+                ]
+            },
+            {
+                name: ".OSP KSRG Gościcino",
+                vehicles: [
+                    { id: "559[G]63", name: "GBA 2,5/16 Volvo/Bocar", status: "green", obsada: 6 }
+                ]
+            },
+            {
+                name: ".OSP KSRG Wejherowo",
+                vehicles: [
+                    { id: "559[G]66", name: "GBA Scania", status: "green", obsada: 6 },
+                    { id: "559[G]67", name: "SLRr Nissan Navara", status: "green", obsada: 3 },
+                    { id: "559[G]68", name: "GBA 2,5/24 Renault Midlum/WISS", status: "green", obsada: 6 },
+                    { id: "559[G]69", name: "SLKw Mitsubishi Canter/Szczęśniak", status: "green", obsada: 3 }
+                ]
+            },
+            {
+                name: ".OSP KSRG Reda",
+                vehicles: [
+                    { id: "559[G]41", name: "GBA 2,5/16 MB Atego/Mototruck", status: "green", obsada: 6 },
+                    { id: "559[G]42", name: "GBA 2,5/16 Star 12.185/Stolarczyk", status: "green", obsada: 6 },
+                    { id: "559[G]43", name: "GCBA Scania", status: "green", obsada: 6 }
+                ]
+            },
+            {
+                name: ".OSP KSRG Luzino",
+                vehicles: [
+                    { id: "559[G]26", name: "GBA 3,5/25 Man TGM/Mototruck", status: "green", obsada: 6 },
+                    { id: "559[G]27", name: "GCBA 5/32 Man TGM/Mototruck", status: "green", obsada: 6 },
+                    { id: "559[G]28", name: "SLRt Ford Transit/Stolarczyk", status: "green", obsada: 3 },
+                    { id: "559[G]29", name: "SLOp Toyota Avensis", status: "green", obsada: 2 }
+                ]
+            },
+            {
+                name: ".OSP KSRG Zelewo",
+                vehicles: [
+                    { id: "559[G]87", name: "GBA Man TGM/Mototruck", status: "green", obsada: 6 }
+                ]
+            },
+            {
+                name: ".OSP KSRG Szemud",
+                vehicles: [
+                    { id: "559[G]51", name: "GBA 2,5/25 Man 13.290/Stolarczyk", status: "green", obsada: 6 },
+                    { id: "559[G]52", name: "GBA 2,5/16 Man TGL/Stolarczyk", status: "green", obsada: 6 },
+                    { id: "559[G]53", name: "GCBA 5/32 Scania P400/WISS", status: "green", obsada: 6 }
+                ]
+            },
+            {
+                name: ".OSP KSRG Kielno",
+                vehicles: [
+                    { id: "559[G]46", name: "GCBA 5/42 MB Axor/Mototruck", status: "green", obsada: 6 },
+                    { id: "559[G]47", name: "GCBA 8,3/60 MAN KAT.1 Buffalo/Rosenbauer", status: "green", obsada: 3 },
+                    { id: "559[G]48", name: "GBA 3/24 Man TGM/Mototruck", status: "green", obsada: 6 }
+                ]
+            },
+            {
+                name: ".OSP KSRG Bojano",
+                vehicles: [
+                    { id: "559[G]76", name: "GCBA 5/32 Man TGM/Stolarczyk", status: "green", obsada: 6 },
+                    { id: "559[G]77", name: "GBA Man TGM/Stolarczyk", status: "green", obsada: 6 },
+                    { id: "559[G]78", name: "SLRr Nissan Navara", status: "green", obsada: 3 }
+                ]
+            },
+            {
+                name: ".OSP KSRG Choczewo",
+                vehicles: [
+                    { id: "559[G]01", name: "GCBA 5/32 Man TGM 18.340/Mototruck", status: "green", obsada: 6 },
+                    { id: "559[G]02", name: "GBA 2,5/16 Star 244/JZS", status: "green", obsada: 6 },
+                    { id: "559[G]03", name: "SLRt Ford Transit/Bocar", status: "green", obsada: 3 }
+                ]
+            },
+            {
+                name: ".OSP KSRG Słajszewo",
+                vehicles: [
+                    { id: "559[G]81", name: "GBA 4,5/30 Man TGM 18.340/Moto-Truck", status: "green", obsada: 6 }
+                ]
+            },
+            {
+                name: ".OSP KSRG Sasino",
+                vehicles: [
+                    { id: "559[G]91", name: "GBA Volvo FL280/Bocar", status: "green", obsada: 6 },
+                    { id: "559[G]92", name: "SLRr Ford Ranger", status: "green", obsada: 3 }
+                ]
+            },
+            {
+                name: ".OSP KSRG Gniewino",
+                vehicles: [
+                    { id: "559[G]06", name: "GBA 2,5/25 Man TGM/Stolarczyk", status: "green", obsada: 6 },
+                    { id: "559[G]07", name: "SLKw Ford Transit/Stolarczyk", status: "green", obsada: 3 }
+                ]
+            },
+            {
+                name: ".OSP KSRG Nadole",
+                vehicles: [
+                    { id: "559[G]11", name: "GCBA 5/32 Volvo FMX/Bocar", status: "green", obsada: 6 },
+                    { id: "559[G]12", name: "SLRt Renault Master/Pasikonik", status: "green", obsada: 3 }
+                ]
+            },
+            {
+                name: ".OSP KSRG Kostkowo",
+                vehicles: [
+                    { id: "559[G]71", name: "GBA 2/24 Renault Midlum/Wawrzaszek", status: "green", obsada: 6 },
+                    { id: "559[G]72", name: "GCBA 7/42 Scania P450/Szczęśniak", status: "green", obsada: 6 }
+                ]
+            },
+            {
+                name: ".OSP KSRG Linia",
+                vehicles: [
+                    { id: "559[G]16", name: "GBA 2,5/16 Volvo FL280/Bocar", status: "green", obsada: 6 },
+                    { id: "559[G]17", name: "GCBA 5/35 Man TGM/Stolarczyk", status: "green", obsada: 6 },
+                    { id: "559[G]18", name: "SLRt Lublin III/FSO", status: "green", obsada: 3 }
+                ]
+            },
+            {
+                name: ".OSP KSRG Strzepcz",
+                vehicles: [
+                    { id: "559[G]21", name: "GBA 2,5/16 MB Atego/Mototruck", status: "green", obsada: 6 },
+                    { id: "559[G]22", name: "SLRt Ford Transit/Stolarczyk", status: "green", obsada: 3 }
+                ]
+            },
+            {
+                name: ".OSP KSRG Bożepole Wielkie",
+                vehicles: [
+                    { id: "559[G]31", name: "GBA 2,5/16 MB Atego/Mototruck", status: "green", obsada: 6 },
+                    { id: "559[G]32", name: "SLRt Iveco Daily/PS", status: "green", obsada: 3 }
+                ]
+            },
+            {
+                name: ".OSP KSRG Łęczyce",
+                vehicles: [
+                    { id: "559[G]36", name: "GCBA 5/32 Man TGM/Mototruck", status: "green", obsada: 6 },
+                    { id: "559[G]37", name: "GBA Man TGM", status: "green", obsada: 6 }
+                ]
+            },
+            {
+                name: ".OSP KSRG Rozłazino",
+                vehicles: [
+                    { id: "559[G]96", name: "GBA Volvo FL280/Bocar", status: "green", obsada: 6 }
+                ]
+            },
+            {
+                name: "OSP Gowino",
+                vehicles: [
+                    { id: "557[G]66", name: "GBA 4,5/32 Scania P370/Szczęśniak", status: "green", obsada: 6 },
+                    { id: "557[G]67", name: "GLBA Iveco Daily/Bocar", status: "green", obsada: 6 }
+                ]
+            },
+            {
+                name: "OSP Orle",
+                vehicles: [
+                    { id: "557[G]76", name: "GCBA 5/37 MB Atego/Szczęśniak", status: "green", obsada: 6 },
+                    { id: "557[G]77", name: "SLRr Mitsubishi L200", status: "green", obsada: 3 }
+                ]
+            },
+            {
+                name: "OSP Kniewo",
+                vehicles: [
+                    { id: "557[G]71", name: "GBA Mercedes Benz 1124/Ziegler", status: "green", obsada: 6 }
+                ]
+            },
+            {
+                name: "OSP Zbychowo",
+                vehicles: [
+                    { id: "557[G]81", name: "GBA 2,5/16 MB Atego/Mototruck", status: "green", obsada: 6 }
+                ]
+            },
+            {
+                name: "OSP Gniewowo",
+                vehicles: [
+                    { id: "557[G]86", name: "GBA 2/20 Renault Midliner M210/Wawrzaszek", status: "green", obsada: 6 },
+                    { id: "557[G]87", name: "GBM 2,5/8 Star 244/JZS", status: "green", obsada: 6 }
+                ]
+            },
+            {
+                name: "OSP Góra",
+                vehicles: [
+                    { id: "557[G]91", name: "GBA Iveco Eurocargo/Sides", status: "green", obsada: 6 }
+                ]
+            },
+            {
+                name: "OSP Nowy Dwór Wejherowski",
+                vehicles: [
+                    { id: "558[G]01", name: "GLM 8 Volkswagen T4", status: "green", obsada: 6 },
+                    { id: "558[G]02", name: "GLBA Iveco Daily/Szczęśniak", status: "green", obsada: 6 }
+                ]
+            },
+            {
+                name: "OSP Rybno",
+                vehicles: [
+                    { id: "557[G]11", name: "GBA 2,5/16 Mercedes Atego/Mototruck", status: "green", obsada: 6 }
+                ]
+            },
+            {
+                name: "OSP Opalino",
+                vehicles: [
+                    { id: "557[G]96", name: "GCBA 5/24 Jelcz 422/JZS", status: "green", obsada: 4 }
+                ]
+            },
+            {
+                name: "OSP Kopalino",
+                vehicles: [
+                    { id: "557[G]01", name: "GLM 8 Ford Transit/Stolarczyk", status: "green", obsada: 6 }
+                ]
+            },
+            {
+                name: "OSP Lewino",
+                vehicles: [
+                    { id: "557[G]21", name: "GBA 2,5/16 Mercedes 1619", status: "green", obsada: 6 }
+                ]
+            },
+            {
+                name: "OSP Milwino",
+                vehicles: [
+                    { id: "557[G]26", name: "GBA 2,5/16 Renault Midlum/Camiva", status: "green", obsada: 6 }
+                ]
+            },
+            {
+                name: "OSP Kaczkowo",
+                vehicles: [
+                    { id: "557[G]36", name: "GBA Renault Range D/Mototruck", status: "green", obsada: 6 }
+                ]
+            },
+            {
+                name: "OSP Częstkowo",
+                vehicles: [
+                    { id: "557[G]51", name: "GCBA Scania", status: "green", obsada: 6 }
+                ]
+            },
+            {
+                name: "OSP Łebno",
+                vehicles: [
+                    { id: "557[G]56", name: "GBA 2,5/16 Mercedes Atego/Bonex", status: "green", obsada: 6 }
+                ]
+            },
+            {
+                name: "OSP Przetoczyno",
+                vehicles: [
+                    { id: "557[G]61", name: "GBA 2,5/16 Magirus", status: "green", obsada: 6 }
+                ]
+            }
+        ];
+
+        let events = [];
+        let activeEditingId = null;
+        let selectedEvIdForRadio = null;
+        let selectedVehicles = [];
+        let servicesState = { prm: false, police: false };
+        let currentCPRData = null;
+        let cprCounter = 101;
+        let currentRadioVehicle = null;
+
+        function triggerArrivalRadioReport(ev, vehicle) {
+            currentRadioVehicle = vehicle.id;
+            selectedEvIdForRadio = ev.id;
+            playSound('radio');
+
+            if (!ev.radioLogs) ev.radioLogs = [];
+
+            if (!ev.tacticalState) {
+                if (ev.type === 'MZ' || ev.desc.toLowerCase().includes("wypadek") || ev.desc.toLowerCase().includes("kolizja")) {
+                    const victimsCount = Math.floor(Math.random() * 4);
+                    const trapped = victimsCount > 0 ? Math.random() > 0.5 : false;
+                    ev.tacticalState = { type: 'ACCIDENT', victims: victimsCount, trapped: trapped, policeNeeded: true };
+                } else if (ev.type === 'P') {
+                    const severe = ev.desc.toLowerCase().includes("hala") || ev.desc.toLowerCase().includes("zakład") || ev.desc.toLowerCase().includes("mieszkaniu") || Math.random() > 0.4;
+                    ev.tacticalState = { type: 'FIRE', severe: severe, victims: severe ? (Math.random() > 0.5 ? 1 : 0) : 0 };
+                } else {
+                    ev.tacticalState = { type: 'OTHER', victims: 0 };
+                }
+            }
+
+            let reportText = "";
+            const st = ev.tacticalState;
+
+            if (st.type === 'ACCIDENT') {
+                if (st.victims === 0) {
+                    reportText = `Wejherowo 998, tu ${vehicle.id}. Jesteśmy na miejscu (${ev.city}, ${ev.street}). Zastano kolizję. Brak osób poszkodowanych. Zabezpieczamy teren.`;
+                } else if (st.trapped) {
+                    reportText = `Wejherowo 998, tu ${vehicle.id}. Dojechaliśmy na miejsce. Groźny wypadek! ${st.victims} osób poszkodowanych, w tym 1 zakleszczona w pojeździe! Rozcinamy karoserię narzędziami hydraulicznymi!`;
+                } else {
+                    reportText = `Wejherowo 998, tu ${vehicle.id}. Jesteśmy na miejscu zdarzenia. Mamy ${st.victims} osoby poszkodowane na zewnątrz, udzielamy KPP.`;
+                }
+            } else if (st.type === 'FIRE') {
+                if (st.severe) {
+                    reportText = `Wejherowo 998, tu ${vehicle.id}. Jesteśmy na miejscu (${ev.city} - ${ev.street}). Po dojeździe zastano rozwinięty pożar! Gęsty dym, podajemy prądy wody w natarciu!`;
+                } else {
+                    reportText = `Wejherowo 998, tu ${vehicle.id}. Dojechaliśmy na miejsce. Pożar w zarodku, podajemy 1 prąd wody. Brak osób poszkodowanych.`;
+                }
+            } else {
+                reportText = `Wejherowo 998, tu ${vehicle.id}. Dojechaliśmy na miejsce zdarzenia, rozpoczynamy rozpoznanie.`;
+            }
+
+            const initialMsg = `<div class="chat-msg chat-kdr"><b>[${new Date().toLocaleTimeString()}] ${vehicle.id} ➔ Wejherowo 998:</b><br>"${reportText}"</div>`;
+            ev.radioLogs.push(initialMsg);
+
+            openRadioForEvent(ev.id);
+        }
+
+        function openRadioForEvent(evId) {
+            const ev = events.find(e => e.id === evId);
+            if (!ev) return;
+            selectedEvIdForRadio = ev.id;
+
+            const chat = document.getElementById('radio-chat');
+            document.getElementById('radio-title').innerText = `📻 Korespondencja Radiowa - Zdarzenie ID: ${ev.id} (${ev.city})`;
+            
+            chat.innerHTML = (ev.radioLogs || []).join('');
+            document.getElementById('radio-modal').style.display = 'flex';
+            document.getElementById('btn-open-radio').style.display = 'block';
+        }
+
+        function openRadioForSelectedEvent() {
+            if (selectedEvIdForRadio !== null) {
+                openRadioForEvent(selectedEvIdForRadio);
+            } else if (events.length > 0) {
+                openRadioForEvent(events[0].id);
+            } else {
+                alert('Brak aktywnych zdarzeń do otwarcia radia.');
+            }
+        }
+
+        function sendRadioReply() {
+            const input = document.getElementById('inp-radio-reply');
+            const text = input.value.trim();
+            if (!text || selectedEvIdForRadio === null) return;
+
+            playSound('radio');
+            const ev = events.find(e => e.id === selectedEvIdForRadio);
+            if (!ev) return;
+
+            const timeStr = new Date().toLocaleTimeString();
+            const userMsg = `<div class="chat-msg chat-sk"><b>[${timeStr}] Wejherowo 998 ➔ KDR:</b><br>"${text}"</div>`;
+            
+            if (!ev.radioLogs) ev.radioLogs = [];
+            ev.radioLogs.push(userMsg);
+            document.getElementById('radio-chat').innerHTML = ev.radioLogs.join('');
+            input.value = '';
+
+            const chatBox = document.getElementById('radio-chat');
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            setTimeout(() => {
+                playSound('radio');
+                const lowerText = text.toLowerCase();
+                let kdrReply = "";
+                let st = ev.tacticalState || { type: 'OTHER', victims: 0 };
+                let vehicleCount = ev.vehicles.length;
+
+                if (lowerText.includes("zrm") || lowerText.includes("karetk") || lowerText.includes("pogotowie")) {
+                    if (st.victims > 0) {
+                        kdrReply = `Wejherowo 998, tu ${currentRadioVehicle || 'KDR'}. Tak, pilnie potrzebujemy ZRM na miejsce! Mamy ${st.victims} poszkodowanych!`;
+                    } else {
+                        kdrReply = `Wejherowo 998, tu ${currentRadioVehicle || 'KDR'}. Brak osób poszkodowanych, ZRM zbędny.`;
+                    }
+                } 
+                else if (lowerText.includes("policj") || lowerText.includes("radiowóz")) {
+                    if (st.type === 'ACCIDENT') {
+                        kdrReply = `Wejherowo 998, tu ${currentRadioVehicle || 'KDR'}. Tak, prosimy o patrol Policji do kierowania ruchem.`;
+                    } else {
+                        kdrReply = `Wejherowo 998, tu ${currentRadioVehicle || 'KDR'}. Policja nie jest wymagana.`;
+                    }
+                }
+                else if (lowerText.includes("dodatkowe") || lowerText.includes("siły") || lowerText.includes("sis") || lowerText.includes("starczy") || lowerText.includes("wsparcie")) {
+                    if (st.type === 'FIRE' && st.severe) {
+                        kdrReply = `Wejherowo 998, tu ${currentRadioVehicle || 'KDR'}. Sytuacja jest poważna! Obecne ${vehicleCount} zastępy to za mało! Poproszę pilnie o co najmniej 2-3 dodatkowe zastępy do wsparcia!`;
+                    } else if (st.type === 'ACCIDENT' && st.trapped && vehicleCount < 2) {
+                        kdrReply = `Wejherowo 998, tu ${currentRadioVehicle || 'KDR'}. Przydałby się jeszcze 1 zastęp ze sprzętem hydraulicznym!`;
+                    } else {
+                        kdrReply = `Wejherowo 998, tu ${currentRadioVehicle || 'KDR'}. Obecne siły (${vehicleCount} zastępy) w zupełności wystarczają.`;
+                    }
+                } 
+                else if (lowerText.includes("przyjął") || lowerText.includes("zrozumiał") || lowerText.includes("ok")) {
+                    kdrReply = `Wejherowo 998, tu ${currentRadioVehicle || 'KDR'}. Zrozumiano, prowadzimy działania.`;
+                } 
+                else {
+                    kdrReply = `Wejherowo 998, tu ${currentRadioVehicle || 'KDR'}. Przyjąłem komunikat. Działamy dalej.`;
+                }
+
+                const replyTimeStr = new Date().toLocaleTimeString();
+                const respMsg = `<div class="chat-msg chat-kdr"><b>[${replyTimeStr}] ${currentRadioVehicle || 'KDR'} ➔ Wejherowo 998:</b><br>"${kdrReply}"</div>`;
+                
+                ev.radioLogs.push(respMsg);
+                document.getElementById('radio-chat').innerHTML = ev.radioLogs.join('');
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }, 1200);
+        }
+
+        function quickReply(text) {
+            document.getElementById('inp-radio-reply').value = text;
+            sendRadioReply();
+        }
+
+        function closeRadio() {
+            document.getElementById('radio-modal').style.display = 'none';
+        }
+
+        function minimizeRadio() {
+            document.getElementById('radio-modal').style.display = 'none';
+
+            const bar = document.getElementById('minimized-bar');
+            const item = document.createElement('div');
+            item.className = 'minimized-item';
+            item.id = `min-radio-${selectedEvIdForRadio}`;
+            item.innerHTML = `📻 Radio (ID: ${selectedEvIdForRadio})`;
+            item.onclick = () => {
+                openRadioForEvent(selectedEvIdForRadio);
+                item.remove();
+            };
+
+            bar.appendChild(item);
+        }
+
+        function simulateIncomingCPR() {
+            playSound('cpr');
+            const randomTpl = eventTemplatesPool[Math.floor(Math.random() * eventTemplatesPool.length)];
+            const chosenLoc = getRandomStreet(randomTpl.category);
+            const randomCaller = callersList[Math.floor(Math.random() * callersList.length)];
+
+            currentCPRData = {
+                id: `WCPR-2026-${cprCounter++}`,
+                city: chosenLoc.city,
+                street: chosenLoc.street,
+                type: randomTpl.type,
+                subtype: randomTpl.subtype,
+                desc: randomTpl.desc,
+                caller: randomCaller
+            };
+
+            document.getElementById('cpr-id').innerText = currentCPRData.id;
+            document.getElementById('cpr-city').innerText = currentCPRData.city;
+            document.getElementById('cpr-street').innerText = currentCPRData.street;
+            document.getElementById('cpr-type').innerText = `${currentCPRData.type} - ${currentCPRData.subtype}`;
+            document.getElementById('cpr-caller').innerText = currentCPRData.caller;
+            document.getElementById('cpr-desc').innerText = currentCPRData.desc;
+
+            document.getElementById('cpr-modal').style.display = 'flex';
+        }
+
+        function closeCPR() {
+            document.getElementById('cpr-modal').style.display = 'none';
+        }
+
+        function minimizeCPR() {
+            if (!currentCPRData) return;
+            document.getElementById('cpr-modal').style.display = 'none';
+
+            const bar = document.getElementById('minimized-bar');
+            const item = document.createElement('div');
+            item.className = 'minimized-item';
+            item.id = `min-cpr-${currentCPRData.id}`;
+            item.innerHTML = `🚨 Zgłoszenie CPR (${currentCPRData.city} - ${currentCPRData.street})`;
+            item.onclick = () => {
+                document.getElementById('cpr-modal').style.display = 'flex';
+                item.remove();
+            };
+
+            bar.appendChild(item);
+        }
+
+        function acceptCPRToEvent() {
+            if (!currentCPRData) return;
+            openNewEventModal();
+
+            document.getElementById('inp-ev-received').value = 'CPR';
+            document.getElementById('inp-ev-city').value = currentCPRData.city;
+            document.getElementById('inp-ev-region').value = locationsDatabase[currentCPRData.city] || '';
+            document.getElementById('inp-ev-street').value = currentCPRData.street;
+            document.getElementById('inp-ev-desc').value = currentCPRData.desc;
+
+            autoSelectJRGByCity(currentCPRData.city);
+
+            const radio = document.querySelector(`input[name="ev-type"][value="${currentCPRData.type}"]`);
+            if (radio) radio.checked = true;
+            updateSubtypes(currentCPRData.type);
+            document.getElementById('inp-ev-subtype').value = currentCPRData.subtype;
+
+            document.getElementById('inp-caller-name').value = currentCPRData.caller.split(' ')[0] || '';
+            document.getElementById('inp-caller-surname').value = currentCPRData.caller.split(' ')[1] || '';
+
+            closeCPR();
+            const minItem = document.getElementById(`min-cpr-${currentCPRData.id}`);
+            if (minItem) minItem.remove();
+        }
+
+        function calculateEstimatedSeconds(desc, subtype, type) {
+            if (type === 'PZR') return -1;
+            const text = (desc + " " + subtype).toLowerCase();
+            if (text.includes("hala") || text.includes("magazyn") || text.includes("zakład") || text.includes("przemysł") || text.includes("balex")) {
+                return 600;
+            } else if (text.includes("wypadek") || text.includes("zakleszczony")) {
+                return 240;
+            } else if (text.includes("mieszkaniu") || text.includes("balkonie") || text.includes("dym")) {
+                return 300;
+            } else if (text.includes("śmietnik") || text.includes("szerszeni") || text.includes("plama")) {
+                return 120;
+            }
+            return 180;
+        }
+
+        function formatMMSS(sec) {
+            if (sec < 0) return "Zabezpieczenie rejonu";
+            const m = Math.floor(sec / 60);
+            const s = sec % 60;
+            return `${m}:${s < 10 ? '0' : ''}${s} min`;
+        }
+
+        function updateSubtypes(type) {
+            const select = document.getElementById('inp-ev-subtype');
+            const group = document.getElementById('subtype-group');
+            select.innerHTML = '';
+            
+            if (type === 'PZR') {
+                group.style.display = 'none';
+                return;
+            } else {
+                group.style.display = 'flex';
+            }
+
+            const list = subtypesData[type] || ["Brak"];
+            list.forEach(sub => {
+                const opt = document.createElement('option');
+                opt.value = sub;
+                opt.innerText = sub;
+                select.appendChild(opt);
+            });
+        }
+
+        function toggleService(service) {
+            servicesState[service] = !servicesState[service];
+            const btn = document.getElementById(service === 'prm' ? 'btn-service-prm' : 'btn-service-police');
+            if (servicesState[service]) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        }
+
+        function renderUnits() {
+            document.getElementById('grid-psp').innerHTML = unitsPSP.map(u => createUnitHTML(u)).join('');
+            document.getElementById('grid-osp').innerHTML = unitsOSP.map(u => createUnitHTML(u)).join('');
+        }
+
+        function createUnitHTML(unit) {
+            let vehiclesHTML = '';
+            if (unit.vehicles.length === 0) {
+                vehiclesHTML = `<div style="padding: 4px; color: #888; font-style: italic;">Brak pojazdów</div>`;
+            } else {
+                vehiclesHTML = unit.vehicles.map(v => `
+                    <div class="vehicle-row">
+                        <span class="status-dot ${v.status}"></span>
+                        <span><b>${v.id}</b> - ${v.name}</span>
+                    </div>
+                `).join('');
+            }
+
+            return `
+                <div class="unit-box">
+                    <div class="unit-header">${unit.name}</div>
+                    <div>${vehiclesHTML}</div>
+                </div>
+            `;
+        }
+
+        function renderEvents() {
+            const tbody = document.getElementById('events-body');
+            tbody.innerHTML = '';
+
+            events.forEach(ev => {
+                const tr = document.createElement('tr');
+                tr.className = (ev.status === 'ACTIVE' ? 'active-ev' : 'finished-ev') + (selectedEvIdForRadio === ev.id ? ' selected-ev' : '');
+                tr.ondblclick = () => {
+                    selectEvent(ev.id);
+                    openRadioForEvent(ev.id);
+                };
+                tr.onclick = () => selectEvent(ev.id);
+
+                let timeDisplay = "";
+                if (ev.status === 'FINISHED') {
+                    timeDisplay = "0:00 min (Zakończono)";
+                } else if (!ev.firstArrived) {
+                    timeDisplay = `Oczekiwanie na dojazd... (${formatMMSS(ev.remainingSeconds)})`;
+                } else {
+                    timeDisplay = formatMMSS(ev.remainingSeconds);
+                }
+
+                tr.innerHTML = `
+                    <td>${ev.id}/???/2026</td>
+                    <td>${ev.time}</td>
+                    <td>${ev.jrg}</td>
+                    <td>${ev.jrg}</td>
+                    <td>${ev.city}</td>
+                    <td>${ev.vehicles.length}</td>
+                    <td>${ev.type}</td>
+                    <td>${ev.desc}</td>
+                    <td><b style="color: ${ev.status === 'ACTIVE' && ev.firstArrived ? '#ffcc00' : '#ff8000'};">${timeDisplay}</b></td>
+                    <td>???-0000${ev.id}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function selectEvent(id) {
+            const ev = events.find(e => e.id === id);
+            if (!ev) return;
+
+            selectedEvIdForRadio = ev.id;
+            document.getElementById('btn-open-radio').style.display = 'block';
+            document.getElementById('details-title').innerText = `Zdarzenie ID: ${ev.id} - ${ev.city}`;
+            
+            renderEvents();
+
+            const sisBody = document.getElementById('details-sis-body');
+            if (ev.vehicles.length === 0) {
+                sisBody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #888;">Brak zadysponowanych SiS</td></tr>';
+                return;
+            }
+
+            sisBody.innerHTML = ev.vehicles.map(v => {
+                let statusText = "W bazie";
+                if (v.travelTime > 0) statusText = `<span style="color: #f39c12; font-weight: bold;">Dojazd (${v.travelTime}s)</span>`;
+                else if (ev.status === 'ACTIVE') statusText = `<span style="color: #ff3333; font-weight: bold;">Na miejscu</span>`;
+                else statusText = `<span style="color: #00ff00;">Powrót/Wolny</span>`;
+
+                return `
+                    <tr>
+                        <td><b>${v.id}</b> - ${v.name}</td>
+                        <td>${v.obsada}</td>
+                        <td>${v.unitName}</td>
+                        <td>${statusText}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function switchTab(tab) {
+            document.getElementById('grid-psp').style.display = tab === 'PSP' ? 'grid' : 'none';
+            document.getElementById('grid-osp').style.display = tab === 'OSP' ? 'grid' : 'none';
+            document.getElementById('btn-tab-psp').className = 'tab-btn ' + (tab === 'PSP' ? 'active' : '');
+            document.getElementById('btn-tab-osp').className = 'tab-btn ' + (tab === 'OSP' ? 'active' : '');
+        }
+
+        function handleCityInput(input) {
+            const val = input.value.trim().toLowerCase();
+            const suggestionsBox = document.getElementById('city-suggestions');
+            suggestionsBox.innerHTML = '';
+
+            if (!val) { suggestionsBox.style.display = 'none'; return; }
+
+            const matches = Object.keys(locationsDatabase).filter(c => c.toLowerCase().startsWith(val));
+            if (matches.length > 0) {
+                matches.forEach(c => {
+                    const div = document.createElement('div');
+                    div.className = 'suggestion-item';
+                    div.innerText = c;
+                    div.onclick = () => {
+                        document.getElementById('inp-ev-city').value = c;
+                        document.getElementById('inp-ev-region').value = locationsDatabase[c];
+                        autoSelectJRGByCity(c);
+                        suggestionsBox.style.display = 'none';
+                    };
+                    suggestionsBox.appendChild(div);
+                });
+                suggestionsBox.style.display = 'block';
+            } else {
+                suggestionsBox.style.display = 'none';
+            }
+        }
+
+        function openNewEventModal() {
+            activeEditingId = null;
+            selectedVehicles = [];
+            servicesState = { prm: false, police: false };
+            document.getElementById('btn-service-prm').classList.remove('active');
+            document.getElementById('btn-service-police').classList.remove('active');
+
+            document.getElementById('modal-event-title').innerText = "Nowa Karta Zdarzenia";
+            document.getElementById('inp-ev-time').value = new Date().toLocaleTimeString();
+            document.getElementById('inp-ev-city').value = '';
+            document.getElementById('inp-ev-region').value = '';
+            document.getElementById('inp-ev-street').value = '';
+            document.getElementById('inp-ev-desc').value = '';
+            document.getElementById('inp-caller-name').value = '';
+            document.getElementById('inp-caller-surname').value = '';
+            document.getElementById('inp-caller-phone').value = '';
+            document.getElementById('lbl-selected-count').innerText = "Wybrano pojazdów: 0";
+
+            const radioP = document.querySelector('input[name="ev-type"][value="P"]');
+            if (radioP) radioP.checked = true;
+            updateSubtypes('P');
+
+            switchModalTab('dane');
+            document.getElementById('modal-event').style.display = 'flex';
+        }
+
+        function openEditEventModal(id) {
+            const ev = events.find(e => e.id === id);
+            if (!ev) return;
+
+            activeEditingId = id;
+            selectedVehicles = [...ev.vehicles];
+
+            document.getElementById('modal-event-title').innerText = `Edycja zdarzenia ID: ${ev.id} - ???-0000${ev.id}`;
+            document.getElementById('inp-ev-time').value = ev.time;
+            document.getElementById('inp-ev-city').value = ev.city;
+            document.getElementById('inp-ev-region').value = ev.region;
+            document.getElementById('inp-ev-street').value = ev.street;
+            document.getElementById('inp-ev-desc').value = ev.desc;
+            document.getElementById('lbl-selected-count').innerText = "Wybrano pojazdów: " + selectedVehicles.length;
+
+            const radio = document.querySelector(`input[name="ev-type"][value="${ev.type}"]`);
+            if (radio) radio.checked = true;
+            updateSubtypes(ev.type);
+            if (ev.type !== 'PZR') {
+                document.getElementById('inp-ev-subtype').value = ev.subtype || "";
+            }
+
+            servicesState = { ...ev.services };
+            if (servicesState.prm) document.getElementById('btn-service-prm').classList.add('active');
+            else document.getElementById('btn-service-prm').classList.remove('active');
+
+            if (servicesState.police) document.getElementById('btn-service-police').classList.add('active');
+            else document.getElementById('btn-service-police').classList.remove('active');
+
+            switchModalTab('dane');
+            document.getElementById('modal-event').style.display = 'flex';
+        }
+
+        function openDispatchModal() {
+            const container = document.getElementById('dispatch-list');
+            const infoBar = document.getElementById('dispatch-info-bar');
+            const targetCity = document.getElementById('inp-ev-city').value.trim();
+            container.innerHTML = '';
+
+            if (targetCity) {
+                infoBar.innerHTML = `📍 Kolejność dysponowania wg odległości dla miejscowości: <span style="color:#b30000;">${targetCity}</span>`;
+            } else {
+                infoBar.innerHTML = `⚠️ Nie wpisano miejscowości – wyświetlono kolejność domyślną`;
+            }
+
+            const availableUnits = [...unitsPSP, ...unitsOSP]
+                .filter(u => u.vehicles.length > 0)
+                .map(u => {
+                    const prox = getUnitProximity(u.name, targetCity);
+                    return { ...u, travelSec: prox.sec, distanceKm: prox.km };
+                })
+                .sort((a, b) => a.travelSec - b.travelSec);
+
+            availableUnits.forEach((u, index) => {
+                const isClosest = index === 0 && targetCity !== "";
+                const groupDiv = document.createElement('div');
+                groupDiv.className = 'dispatch-unit-group';
+
+                const headerHTML = `
+                    <div class="dispatch-unit-header ${isClosest ? 'closest' : ''}">
+                        <span>${index + 1}. ${u.name} ${isClosest ? '⭐ (Najbliższa)' : ''}</span>
+                        <span>${u.distanceKm} | Dojazd: ~${u.travelSec}s</span>
+                    </div>
+                `;
+
+                const vehiclesHTML = u.vehicles.map(v => {
+                    const isChecked = selectedVehicles.some(sv => sv.id === v.id);
+                    const statusLabel = v.status === 'green' 
+                        ? '<span style="color:#2ecc71; font-size:10px;">(Wolny)</span>' 
+                        : '<span style="color:#e74c3c; font-size:10px;">(W akcji)</span>';
+
+                    return `
+                        <label class="dispatch-vehicle-item" style="cursor:pointer;">
+                            <input type="checkbox" value="${v.id}" ${isChecked ? 'checked' : ''}>
+                            <span class="status-dot ${v.status}"></span>
+                            <span><b>${v.id}</b> - ${v.name}</span>
+                            <span style="margin-left:auto;">${statusLabel}</span>
+                        </label>
+                    `;
+                }).join('');
+
+                groupDiv.innerHTML = headerHTML + vehiclesHTML;
+                container.appendChild(groupDiv);
+            });
+
+            document.getElementById('modal-dispatch').style.display = 'flex';
+        }
+
+        function confirmDispatch() {
+            const checkboxes = document.querySelectorAll('#dispatch-list input:checked');
+            const targetCity = document.getElementById('inp-ev-city').value.trim() || "Bolszewo";
+            selectedVehicles = [];
+
+            checkboxes.forEach(cb => {
+                [...unitsPSP, ...unitsOSP].forEach(u => {
+                    const v = u.vehicles.find(veh => veh.id === cb.value);
+                    if (v) {
+                        const travel = calculateTravelTimeSeconds(u.name, targetCity);
+                        selectedVehicles.push({ ...v, unitName: u.name, travelTime: travel });
+                    }
+                });
+            });
+
+            document.getElementById('lbl-selected-count').innerText = "Wybrano pojazdów: " + selectedVehicles.length;
+            closeModal('modal-dispatch');
+        }
+
+        function saveEvent() {
+            const city = document.getElementById('inp-ev-city').value;
+            if (!city) { alert('Proszę podać miejscowość!'); return; }
+
+            const evTypeRadio = document.querySelector('input[name="ev-type"]:checked');
+            const typeVal = evTypeRadio ? evTypeRadio.value : 'P';
+            const subtypeVal = typeVal === 'PZR' ? 'Zabezpieczenie rejonu' : document.getElementById('inp-ev-subtype').value;
+            const descVal = document.getElementById('inp-ev-desc').value;
+            const estSec = calculateEstimatedSeconds(descVal, subtypeVal, typeVal);
+
+            selectedVehicles.forEach(sv => {
+                if (sv.travelTime === undefined || activeEditingId === null) {
+                    sv.travelTime = calculateTravelTimeSeconds(sv.unitName, city);
+                }
+            });
+
+            // --- SPRAWDZENIE I ODTWORZENIE DŹWIĘKU OSP ---
+            // Liczymy ile unikalnych jednostek OSP zostało zadysponowanych do zdarzenia[cite: 5]
+            let uniqueOspUnitsCount = 0;
+            let countedOspNames = [];
+            selectedVehicles.forEach(sv => {
+                // Jeśli pojazd należy do OSP (nie zawiera PSP / JRG / KP PSP w nazwie jednostki)
+                if (!sv.unitName.includes("JRG") && !sv.unitName.includes("KP PSP")) {
+                    if (!countedOspNames.includes(sv.unitName)) {
+                        countedOspNames.push(sv.unitName);
+                        uniqueOspUnitsCount++;
+                    }
+                }
+            });
+
+            // Odtwarzamy dźwięk alarmu OSP tyle razy, ile unikalnych jednostek OSP zadysponowano[cite: 5]
+            playOspAlarmRepeated(uniqueOspUnitsCount);
+
+            if (activeEditingId === null) {
+                const newEv = {
+                    id: events.length + 1,
+                    time: document.getElementById('inp-ev-time').value,
+                    city: city,
+                    region: document.getElementById('inp-ev-region').value,
+                    street: document.getElementById('inp-ev-street').value,
+                    desc: descVal,
+                    type: typeVal,
+                    subtype: subtypeVal,
+                    remainingSeconds: estSec,
+                    firstArrived: false,
+                    radioReported: false,
+                    radioLogs: [],
+                    jrg: document.getElementById('inp-ev-jrg').value,
+                    services: { ...servicesState },
+                    vehicles: [...selectedVehicles],
+                    status: 'ACTIVE'
+                };
+                events.push(newEv);
+                selectEvent(newEv.id);
+            } else {
+                const ev = events.find(e => e.id === activeEditingId);
+                ev.city = city;
+                ev.desc = descVal;
+                ev.type = typeVal;
+                ev.subtype = subtypeVal;
+                ev.remainingSeconds = estSec;
+                ev.services = { ...servicesState };
+                ev.vehicles = [...selectedVehicles];
+            }
+
+            selectedVehicles.forEach(sv => {
+                [...unitsPSP, ...unitsOSP].forEach(u => {
+                    const v = u.vehicles.find(veh => veh.id === sv.id);
+                    if (v && v.status === 'green') v.status = 'orange';
+                });
+            });
+
+            renderUnits();
+            renderEvents();
+            closeModal('modal-event');
+        }
+
+        function finishCurrentEvent() {
+            if (activeEditingId === null) return;
+            const ev = events.find(e => e.id === activeEditingId);
+
+            if (ev) {
+                ev.status = 'FINISHED';
+                ev.remainingSeconds = 0;
+                ev.vehicles.forEach(sv => {
+                    [...unitsPSP, ...unitsOSP].forEach(u => {
+                        const v = u.vehicles.find(veh => veh.id === sv.id);
+                        if (v) v.status = 'green';
+                    });
+                });
+            }
+
+            renderUnits();
+            renderEvents();
+            closeModal('modal-event');
+        }
+
+        function switchModalTab(tab) {
+            document.getElementById('modal-tab-dane-content').style.display = tab === 'dane' ? 'block' : 'none';
+            document.getElementById('modal-tab-czasy-content').style.display = tab === 'czasy' ? 'block' : 'none';
+            document.getElementById('tab-modal-dane').className = 'tab-btn ' + (tab === 'dane' ? 'active' : '');
+            document.getElementById('tab-modal-czasy').className = 'tab-btn ' + (tab === 'czasy' ? 'active' : '');
+        }
+
+        function openSiSModal() { document.getElementById('modal-sis').style.display = 'flex'; }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+        setInterval(() => {
+            let needsRender = false;
+
+            events.forEach(ev => {
+                if (ev.status === 'ACTIVE') {
+                    ev.vehicles.forEach(v => {
+                        if (v.travelTime > 0) {
+                            v.travelTime--;
+                            needsRender = true;
+                        } else {
+                            [...unitsPSP, ...unitsOSP].forEach(u => {
+                                const veh = u.vehicles.find(vObj => vObj.id === v.id);
+                                if (veh && veh.status === 'orange') {
+                                    veh.status = 'red';
+                                    
+                                    if (!ev.firstArrived) {
+                                        ev.firstArrived = true;
+                                        if (!ev.radioReported) {
+                                            ev.radioReported = true;
+                                            triggerArrivalRadioReport(ev, v);
+                                        }
+                                    }
+                                    needsRender = true;
+                                }
+                            });
+                        }
+                    });
+
+                    if (ev.firstArrived && ev.remainingSeconds > 0) {
+                        ev.remainingSeconds--;
+                        needsRender = true;
+                    } else if (ev.firstArrived && ev.remainingSeconds === 0) {
+                        ev.status = 'FINISHED';
+                        ev.vehicles.forEach(sv => {
+                            [...unitsPSP, ...unitsOSP].forEach(u => {
+                                const veh = u.vehicles.find(vObj => vObj.id === sv.id);
+                                if (veh) veh.status = 'green';
+                            });
+                        });
+                        needsRender = true;
+                    }
+                }
+            });
+
+            if (needsRender) {
+                renderUnits();
+                renderEvents();
+            }
+        }, 1000);
+
+        renderUnits();
+    </script>
+</body>
+</html>
