@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SWD PSP v1.4.1 - Symulator</title>
+    <title>SWD PSP v1.4.2 - Symulator</title>
     <style>
         :root {
             --win-bg: #ece9d8;
@@ -837,32 +837,22 @@
     </div>
 
     <script>
-        // --- MODUŁ AUDIO (OBSŁUGA PLIKÓW WAV / MP3 Z GITHUBA) ---
+        // --- MODUŁ AUDIO (PLIKI Z REPOZYTORIUM) ---
         const audioSelekt = new Audio('selekt.wav');
         const audioCpr = new Audio('nowe zdarzenie odbierz.mp3');
+        const audioMotorola = new Audio('motorola.ogg');
 
         function playSound(type) {
             if (type === 'cpr') {
                 audioCpr.currentTime = 0;
-                audioCpr.play().catch(e => console.log("Odtwarzanie audio wymaga interakcji z użytkownikiem"));
-            } else if (type === 'radio') {
-                // Krótki beepsyntezatora dla radiostacji
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                if (ctx.state === 'suspended') ctx.resume();
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                osc.type = 'square';
-                osc.frequency.setValueAtTime(450, ctx.currentTime);
-                gain.gain.setValueAtTime(0.05, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.06);
-                osc.start();
-                osc.stop(ctx.currentTime + 0.06);
+                audioCpr.play().catch(e => console.log("Audio CPR zablokowane"));
+            } else if (type === 'motorola') {
+                audioMotorola.currentTime = 0;
+                audioMotorola.play().catch(e => console.log("Audio Motorola zablokowane"));
             }
         }
 
-        // Odtwarzanie pliku selekt.wav tyle razy, ile unikalnych jednostek OSP zadysponowano[cite: 5, 6]
+        // Odtwarzanie selektu tyle razy, ile unikalnych jednostek OSP zadysponowano[cite: 5, 6]
         function playOspAlarmRepeated(ospCount) {
             if (ospCount <= 0) return;
             let played = 0;
@@ -873,10 +863,9 @@
                     audioSelekt.play().then(() => {
                         played++;
                         if (played < ospCount) {
-                            // Czekamy aż skończy się plik lub robimy przerwę ok. 1.5 sekundy przed kolejnym powtórzeniem
                             setTimeout(playNext, 1800);
                         }
-                    }).catch(e => console.log("Audio OSP zablokowane przez przeglądarkę"));
+                    }).catch(e => console.log("Audio OSP zablokowane"));
                 }
             }
             playNext();
@@ -1448,7 +1437,10 @@
         function triggerArrivalRadioReport(ev, vehicle) {
             currentRadioVehicle = vehicle.id;
             selectedEvIdForRadio = ev.id;
-            playSound('radio');
+            
+            // Odtwarzaj plik motorola.ogg przy zgłoszeniu z radia
+            const audioMotorola = new Audio('motorola.ogg');
+            audioMotorola.play().catch(e => console.log("Audio motorola zablokowane"));
 
             if (!ev.radioLogs) ev.radioLogs = [];
 
@@ -1520,7 +1512,10 @@
             const text = input.value.trim();
             if (!text || selectedEvIdForRadio === null) return;
 
-            playSound('radio');
+            // Odtwórz motorola.ogg gdy ty odpisujesz w radiu
+            const audioMotorola = new Audio('motorola.ogg');
+            audioMotorola.play().catch(e => console.log("Audio motorola zablokowane"));
+
             const ev = events.find(e => e.id === selectedEvIdForRadio);
             if (!ev) return;
 
@@ -1536,7 +1531,9 @@
             chatBox.scrollTop = chatBox.scrollHeight;
 
             setTimeout(() => {
-                playSound('radio');
+                const audioMotorolaResp = new Audio('motorola.ogg');
+                audioMotorolaResp.play().catch(e => console.log("Audio motorola zablokowane"));
+
                 const lowerText = text.toLowerCase();
                 let kdrReply = "";
                 let st = ev.tacticalState || { type: 'OTHER', victims: 0 };
@@ -1607,7 +1604,9 @@
         }
 
         function simulateIncomingCPR() {
-            playSound('cpr');
+            const audioCpr = new Audio('nowe zdarzenie odbierz.mp3');
+            audioCpr.play().catch(e => console.log("Audio CPR zablokowane"));
+
             const randomTpl = eventTemplatesPool[Math.floor(Math.random() * eventTemplatesPool.length)];
             const chosenLoc = getRandomStreet(randomTpl.category);
             const randomCaller = callersList[Math.floor(Math.random() * callersList.length)];
@@ -1764,10 +1763,13 @@
             events.forEach(ev => {
                 const tr = document.createElement('tr');
                 tr.className = (ev.status === 'ACTIVE' ? 'active-ev' : 'finished-ev') + (selectedEvIdForRadio === ev.id ? ' selected-ev' : '');
+                
+                // DWUKROTNE KLIKNIĘCIE OTWIERA EDYCJĘ KARTY ZDARZENIA
                 tr.ondblclick = () => {
-                    selectEvent(ev.id);
-                    openRadioForEvent(ev.id);
+                    openEditEventModal(ev.id);
                 };
+
+                // POJEDYNACZE KLIKNIĘCIE ZAZNACZA ZDARZENIE
                 tr.onclick = () => selectEvent(ev.id);
 
                 let timeDisplay = "";
@@ -2011,8 +2013,7 @@
                 }
             });
 
-            // --- SPRAWDZENIE I ODTWORZENIE DŹWIĘKU OSP (selekt.wav) ---
-            // Liczymy ile unikalnych jednostek OSP zostało zadysponowanych do zdarzenia[cite: 5]
+            // Sprawdzenie i odtworzenie pliku selekt.wav dla jednostek OSP
             let uniqueOspUnitsCount = 0;
             let countedOspNames = [];
             selectedVehicles.forEach(sv => {
@@ -2024,8 +2025,23 @@
                 }
             });
 
-            // Odtwarzamy selekt tyle razy, ile unikalnych jednostek OSP[cite: 5]
-            playOspAlarmRepeated(uniqueOspUnitsCount);
+            // Odtwórz plik selekt.wav tyle razy, ile unikalnych OSP zadysponowano[cite: 5, 6]
+            if (uniqueOspUnitsCount > 0) {
+                const audioSelekt = new Audio('selekt.wav');
+                let played = 0;
+                function playNextSelekt() {
+                    if (played < uniqueOspUnitsCount) {
+                        audioSelekt.currentTime = 0;
+                        audioSelekt.play().then(() => {
+                            played++;
+                            if (played < uniqueOspUnitsCount) {
+                                setTimeout(playNextSelekt, 1800);
+                            }
+                        }).catch(e => console.log("Audio selekt zablokowane"));
+                    }
+                }
+                playNextSelekt();
+            }
 
             if (activeEditingId === null) {
                 const newEv = {
