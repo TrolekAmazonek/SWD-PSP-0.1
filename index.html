@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SWD PSP v1.4.0 - Symulator</title>
+    <title>SWD PSP v1.4.1 - Symulator</title>
     <style>
         :root {
             --win-bg: #ece9d8;
@@ -837,55 +837,49 @@
     </div>
 
     <script>
-        // --- MODUŁ AUDIO (SYNTEZATOR DŹWIĘKÓW) ---
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        // --- MODUŁ AUDIO (OBSŁUGA PLIKÓW WAV / MP3 Z GITHUBA) ---
+        const audioSelekt = new Audio('selekt.wav');
+        const audioCpr = new Audio('nowe zdarzenie odbierz.mp3');
 
         function playSound(type) {
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-
             if (type === 'cpr') {
-                // Sygnał alarmowy zgłoszenia CPR
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(880, audioCtx.currentTime);
-                osc.frequency.setValueAtTime(1100, audioCtx.currentTime + 0.15);
-                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.4);
+                audioCpr.currentTime = 0;
+                audioCpr.play().catch(e => console.log("Odtwarzanie audio wymaga interakcji z użytkownikiem"));
             } else if (type === 'radio') {
-                // Kliknięcie radiowe
+                // Krótki beepsyntezatora dla radiostacji
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                if (ctx.state === 'suspended') ctx.resume();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
                 osc.type = 'square';
-                osc.frequency.setValueAtTime(450, audioCtx.currentTime);
-                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+                osc.frequency.setValueAtTime(450, ctx.currentTime);
+                gain.gain.setValueAtTime(0.05, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.06);
                 osc.start();
-                osc.stop(audioCtx.currentTime + 0.08);
-            } else if (type === 'osp_alarm') {
-                // Dźwięk alarmowania OSP
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(600, audioCtx.currentTime);
-                osc.frequency.linearRampToValueAtTime(900, audioCtx.currentTime + 0.2);
-                gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.3);
+                osc.stop(ctx.currentTime + 0.06);
             }
         }
 
-        // Funkcja odtwarzająca dźwięk OSP tyle razy, ile unikalnych jednostek OSP zadysponowano[cite: 5]
+        // Odtwarzanie pliku selekt.wav tyle razy, ile unikalnych jednostek OSP zadysponowano[cite: 5, 6]
         function playOspAlarmRepeated(ospCount) {
             if (ospCount <= 0) return;
-            for (let i = 0; i < ospCount; i++) {
-                setTimeout(() => {
-                    playSound('osp_alarm');
-                }, i * 400); // Odstęp 400ms między powtórzeniami
+            let played = 0;
+            
+            function playNext() {
+                if (played < ospCount) {
+                    audioSelekt.currentTime = 0;
+                    audioSelekt.play().then(() => {
+                        played++;
+                        if (played < ospCount) {
+                            // Czekamy aż skończy się plik lub robimy przerwę ok. 1.5 sekundy przed kolejnym powtórzeniem
+                            setTimeout(playNext, 1800);
+                        }
+                    }).catch(e => console.log("Audio OSP zablokowane przez przeglądarkę"));
+                }
             }
+            playNext();
         }
 
         const locationsDatabase = {
@@ -2017,12 +2011,11 @@
                 }
             });
 
-            // --- SPRAWDZENIE I ODTWORZENIE DŹWIĘKU OSP ---
+            // --- SPRAWDZENIE I ODTWORZENIE DŹWIĘKU OSP (selekt.wav) ---
             // Liczymy ile unikalnych jednostek OSP zostało zadysponowanych do zdarzenia[cite: 5]
             let uniqueOspUnitsCount = 0;
             let countedOspNames = [];
             selectedVehicles.forEach(sv => {
-                // Jeśli pojazd należy do OSP (nie zawiera PSP / JRG / KP PSP w nazwie jednostki)
                 if (!sv.unitName.includes("JRG") && !sv.unitName.includes("KP PSP")) {
                     if (!countedOspNames.includes(sv.unitName)) {
                         countedOspNames.push(sv.unitName);
@@ -2031,7 +2024,7 @@
                 }
             });
 
-            // Odtwarzamy dźwięk alarmu OSP tyle razy, ile unikalnych jednostek OSP zadysponowano[cite: 5]
+            // Odtwarzamy selekt tyle razy, ile unikalnych jednostek OSP[cite: 5]
             playOspAlarmRepeated(uniqueOspUnitsCount);
 
             if (activeEditingId === null) {
